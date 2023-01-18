@@ -1,0 +1,88 @@
+version: '3'
+
+services:
+  database:
+    build:
+      context: ./database
+    environment:
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+#    ports:
+#      - "3306:3306"
+    volumes:
+      - ./database/data:/var/lib/mysql
+    restart: always
+
+  php-apache:
+    build:
+      context: ../
+      dockerfile: ./docker/php-apache/Dockerfile
+      args:
+        MAIN_DOMAIN: ${MAIN_DOMAIN}
+        ALL_DOMAINS: ${ALL_DOMAINS}
+        PROJECT_FOLDER_NAME: ${PROJECT_FOLDER_NAME}
+        WEBSITE_USER_PASSWORD: ${WEBSITE_USER_PASSWORD}
+        EMAIL: ${EMAIL}
+        EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        GENERATE_JS_ROUTES  : ${GENERATE_JS_ROUTES}
+    depends_on:
+      - database
+      - mailserver
+#    ports: # uncomment these if you're not using traefik
+#      - "80:80"
+#      - "443:443"
+    volumes:
+      - ./apachelogs:/var/log/apache2
+      - /var/log/auth.log:/var/log/auth.log
+      - ./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/
+    labels:
+      # - "traefik.http.routers.php-apache.rule=HostRegexp(`example.com`,`{subhost:[a-z]+}.example.com`, `www.{subhost:[a-z]+}.example.com`)"
+      - "traefik.http.routers.php-apache.tls=true"
+      - "traefik.http.routers.php-apache.tls.certresolver=letsencrypt"
+      #note : specifying individually domains sucks. we can use wildcards instead, but it requires a dns challenge. more complicated.
+      #- "traefik.http.routers.php-apache.tls.domains[0].main=example.com"
+      #- "traefik.http.routers.php-apache.tls.domains[1].main=fr.example.com"
+      - "traefik.http.services.php-apache.loadbalancer.server.port=80"
+      - "traefik.enable=true"
+    restart: always
+
+  mailserver:
+    build:
+      context: ./mailserver
+    environment:
+      EMAIL: ${EMAIL}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+    container_name: mailserver
+    # If the FQDN for your mail-server is only two labels (eg: example.com),
+    # you can assign this entirely to `hostname` and remove `domainname`.
+    hostname: ${MAIN_DOMAIN}
+    env_file: mailserver.env
+    # More information about the mail-server ports:
+    # https://docker-mailserver.github.io/docker-mailserver/edge/config/security/understanding-the-ports/
+    # To avoid conflicts with yaml base-60 float, DO NOT remove the quotation marks.
+#   ports:
+#     - "25:25"    # SMTP  (explicit TLS => STARTTLS)
+#     - "143:143"  # IMAP4 (explicit TLS => STARTTLS)
+#     - "465:465"  # ESMTP (implicit TLS)
+#     - "587:587"  # ESMTP (explicit TLS => STARTTLS)
+#     - "993:993"  # IMAP4 (implicit TLS)
+    volumes:
+      - ./maildata/dms/mail-data/:/var/mail/
+      - ./maildata/dms/mail-state/:/var/mail-state/
+      - ./maildata/dms/mail-logs/:/var/log/mail/
+      - ./maildata/dms/config/:/tmp/docker-mailserver/
+      - /etc/localtime:/etc/localtime:ro
+      - ./certs/:/etc/letsencrypt
+    restart: always
+    stop_grace_period: 1m
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: "ss --listening --tcp | grep -P 'LISTEN.+:smtp' || exit 1"
+      timeout: 3s
+      retries: 0
