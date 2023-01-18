@@ -344,7 +344,7 @@ if ($includeTraefik)
       - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
 
-      - "--certificatesresolvers.letsencrypt.acme.email=$EMAIL"
+      - "--certificatesresolvers.letsencrypt.acme.email=$YOUR_OWN_EMAIL"
       - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
       # used during the challenge
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
