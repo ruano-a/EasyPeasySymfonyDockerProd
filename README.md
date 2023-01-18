@@ -1,4 +1,4 @@
-# EasyPeasySymfonyDockerProd (and with and a mail server, and traefik, optionally. Giving https. With traefik. Unless you don't want it)
+# EasyPeasySymfonyDockerProd (with a mail server / traefik / https. Optionally)
 
 # How to install the production
 
@@ -51,3 +51,5 @@ In the host system (your server):
 * It's been decided that fail2ban should be installed in the host, and not the images, because it usually handles ssh
 
 * This repo will probably evolve over the time
+
+* This repo should work out of the box for mainstream cases. But you might have to make custom changes. And you should. Remember that you can modify any file. It's your website.
