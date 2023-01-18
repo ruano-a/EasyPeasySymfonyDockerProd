@@ -1,4 +1,4 @@
-# EasyPeasySymfonyDockerProd (and with and a mail server, and traefik, optionally. Giving https. With traefik. Unless you don't want it)
+# EasyPeasySymfonyDockerProd (and with a mail server, and traefik, optionally. Giving https. With traefik. Unless you don't want it)
 
 # How to install the production
 
