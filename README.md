@@ -53,3 +53,5 @@ In the host system (your server):
 * This repo will probably evolve over the time
 
 * This repo should work out of the box for mainstream cases. But you might have to make custom changes. And you should. Remember that you can modify any file. It's your website.
+
+* If you changed values in .env, and want to update the docker-compose.yml file without getting new https certificates, don't use setup.sh. Use (in the docker folder) docker run -it -v ${PWD}/:/myinstall/ php:7.4-apache php /myinstall/php-apache/scripts/update-docker-compose.php -c /myinstall/docker-compose.yml -e /myinstall/.env -a /myinstall/acme.json
