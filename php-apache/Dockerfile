@@ -79,8 +79,7 @@ RUN apt install cron -y
 
 ARG EMAIL
 ARG EMAIL_PASSWORD
-# variable reassignment are done on the 
-# there is a \before & because sed does special things when it sees it
+ARG I_WANT_MAILSERVER
 RUN bash /installfiles/build/replace-vars-in-env-file.sh
 ARG MYSQL_USER
 ARG MYSQL_PASSWORD

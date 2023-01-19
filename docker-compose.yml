@@ -29,7 +29,8 @@ services:
         MYSQL_DATABASE: ${MYSQL_DATABASE}
         MYSQL_USER: ${MYSQL_USER}
         MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-        GENERATE_JS_ROUTES  : ${GENERATE_JS_ROUTES}
+        GENERATE_JS_ROUTES: ${GENERATE_JS_ROUTES}
+        I_WANT_MAILSERVER: ${I_WANT_MAILSERVER}
     depends_on:
       - database
       - mailserver
