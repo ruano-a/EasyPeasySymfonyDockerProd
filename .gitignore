@@ -1,6 +1,8 @@
 /.env
 /apachelogs/*
 !/apachelogs/.gitkeep
+/nginxlogs/*
+!/nginxlogs/.gitkeep
 /cert_logs/*
 !/cert_logs/.gitkeep
 /certs/*

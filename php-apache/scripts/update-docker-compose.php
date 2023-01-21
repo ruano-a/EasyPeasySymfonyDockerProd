@@ -93,7 +93,7 @@ function extractTlsDomainsFromLabels(&$labels)
 	$result = [];
 
 	foreach ($labels as $key => $label) {
-		if (preg_match('/^traefik\\.http\\.routers\\.php-apache\\.tls\\.domains\\\\\[\\d+\\\\\]\\.main=*/', $label)) {
+		if (preg_match('/^traefik\\.http\\.routers\\.php-http\\.tls\\.domains\\\\\[\\d+\\\\\]\\.main=*/', $label)) {
 			$result[] = $label;
 			unset($labels[$key]);
 		}
@@ -130,6 +130,7 @@ foreach (['SET_WEBSERVER_WITH_TRAEFIK', 'I_WANT_MAILSERVER', 'INCLUDE_TRAEFIK_CO
 $setTraefik = $envData['SET_WEBSERVER_WITH_TRAEFIK'];
 $includeMailServer = $envData['I_WANT_MAILSERVER'];
 $includeTraefik = $envData['INCLUDE_TRAEFIK_CONTAINER'];
+$httpServer = $envData['HTTP_SERVER'];
 
 if ($includeTraefik && !$acmeFilePath)
 {
@@ -138,50 +139,56 @@ if ($includeTraefik && !$acmeFilePath)
 	exit();
 }
 
+if ($httpServer !== 'nginx' && $httpServer !== 'apache')
+{
+	echo "HTTP_SERVER can only have as value apache of nginx.\n";
+	exit();
+}
+
 $composeYml = file_get_contents($composeFilePath);
 $composeYml = str_replace(['[', ']'], ['\\[', '\\]'], $composeYml);
 $composeFileData = Spyc::YAMLLoadString($composeYml);
-$labels = $composeFileData['services']['php-apache']['labels'];
+$labels = $composeFileData['services']['php-http']['labels'];
 $domains = explode(',', $envData['ALL_DOMAINS']);
 
 if ($setTraefik)
 {
-	if (isset($composeFileData['services']['php-apache']['ports']))
+	if (isset($composeFileData['services']['php-http']['ports']))
 	{
-		echo "The ports are specified for php-apache. This shouldn't be specified with traefik. Removing it.\n";
-		unset($composeFileData['services']['php-apache']['ports']);
+		echo "The ports are specified for php-http. This shouldn't be specified with traefik. Removing it.\n";
+		unset($composeFileData['services']['php-http']['ports']);
 	}
 }
 else
 {
-	if (!isset($composeFileData['services']['php-apache']['ports']))
+	if (!isset($composeFileData['services']['php-http']['ports']))
 	{
 		echo "Adding port bindings for 80 and 443\n";
-		$composeFileData['services']['php-apache']['ports'] = ['80:80', '443:443'];
+		$composeFileData['services']['php-http']['ports'] = ['80:80', '443:443'];
 	}
 	else
 	{
-		if (!in_array('80:80', isset($composeFileData['services']['php-apache']['ports'])))
+		if (!in_array('80:80', isset($composeFileData['services']['php-http']['ports'])))
 		{
 			echo "Adding port binding for 80\n";
-			$composeFileData['services']['php-apache']['ports'] = '80:80';
+			$composeFileData['services']['php-http']['ports'] = '80:80';
 		}
-		if (!in_array('443:443', isset($composeFileData['services']['php-apache']['ports'])))
+		if (!in_array('443:443', isset($composeFileData['services']['php-http']['ports'])))
 		{
 			echo "Adding port binding for 443\n";
-			$composeFileData['services']['php-apache']['ports'] = '443:443';
+			$composeFileData['services']['php-http']['ports'] = '443:443';
 		}
 	}
 }
 
-if (($labelIndex = getLabelIndex($labels, 'traefik.http.routers.php-apache.rule')) >= 0)
+if (($labelIndex = getLabelIndex($labels, 'traefik.http.routers.php-http.rule')) >= 0)
 {
 	if ($setTraefik)
 	{
 		if (!$alwaysNo && ($alwaysYes || askConfirmation('Host rule already present. Overwrite it?')))
 		{
 			echo "Overwriting of the host rule.\n";
-			$labels[$labelIndex] = 'traefik.http.routers.php-apache.rule=' . 'Host(`' . implode('`, `', $domains) . '`)';
+			$labels[$labelIndex] = 'traefik.http.routers.php-http.rule=' . 'Host(`' . implode('`, `', $domains) . '`)';
 		}
 		else
 		{
@@ -198,7 +205,7 @@ if (($labelIndex = getLabelIndex($labels, 'traefik.http.routers.php-apache.rule'
 else if ($setTraefik)
 {
 	echo "Adding routing rule\n";
-	$labels[] = 'traefik.http.routers.php-apache.rule=' . 'Host(`' . implode('`, `', $domains) . '`)';
+	$labels[] = 'traefik.http.routers.php-http.rule=' . 'Host(`' . implode('`, `', $domains) . '`)';
 }
 
 $tlsDomains = extractTlsDomainsFromLabels($labels); // as an extraction, it removes them from labels
@@ -212,7 +219,7 @@ if ($setTraefik)
 			echo "Overwriting of the tls domains.\n";
 			$tlsDomains = [];
 			foreach ($domains as $i => $domain) {
-				$tlsDomains[] = 'traefik.http.routers.php-apache.tls.domains\\[' . $i . '\\].main=' . $domain;
+				$tlsDomains[] = 'traefik.http.routers.php-http.tls.domains\\[' . $i . '\\].main=' . $domain;
 			}
 		}
 		else
@@ -223,7 +230,7 @@ if ($setTraefik)
 	else
 	{
 		foreach ($domains as $i => $domain) {
-			$tlsDomains[] = 'traefik.http.routers.php-apache.tls.domains\\[' . $i . '\\].main=' . $domain;
+			$tlsDomains[] = 'traefik.http.routers.php-http.tls.domains\\[' . $i . '\\].main=' . $domain;
 		}
 	}
 }
@@ -237,9 +244,9 @@ else
 }
 
 foreach ([
-			['traefik.http.routers.php-apache.tls', 'true', 'tls'],
-			['traefik.http.routers.php-apache.tls.certresolver', 'letsencrypt', 'certresolver'],
-			['traefik.http.services.php-apache.loadbalancer.server.port', '80', 'loadbalancer port'],
+			['traefik.http.routers.php-http.tls', 'true', 'tls'],
+			['traefik.http.routers.php-http.tls.certresolver', 'letsencrypt', 'certresolver'],
+			['traefik.http.services.php-http.loadbalancer.server.port', '80', 'loadbalancer port'],
 			['traefik.enable', 'true', 'enabling'],
 		] as $traefikRuleData) {
 	if (($labelIndex = getLabelIndex($labels, $traefikRuleData[0])) >= 0)
@@ -259,11 +266,20 @@ foreach ([
 }
 
 $labels = array_merge($labels, $tlsDomains);
-$composeFileData['services']['php-apache']['labels'] = $labels;
-if (!$includeMailServer && isset($composeFileData['services']['mailserver']))
+$composeFileData['services']['php-http']['labels'] = $labels;
+if (!$includeMailServer)
 {
-	unset($composeFileData['services']['mailserver']);
+		if (isset($composeFileData['services']['mailserver']))
+		{
+			unset($composeFileData['services']['mailserver']);
+		}
+		$composeFileData['services']['php-http']['depends_on'] = ['database'];
 }
+else
+{
+		$composeFileData['services']['php-http']['depends_on'] = ['database', 'mailserver'];
+}
+
 if (!$includeTraefik && isset($composeFileData['services']['traefik']))
 {
 	unset($composeFileData['services']['traefik']);
@@ -312,6 +328,25 @@ if ($includeMailServer && !isset($composeFileData['services']['mailserver']))
       retries: 0' . "\n";
 }
 
+if ($httpServer === 'apache')
+{
+	$composeFileData['services']['php-http']['build']['dockerfile'] = './docker/php-apache/Dockerfile';
+	$composeFileData['services']['php-http']['volumes'] = [
+		'./apachelogs:/var/log/apache2',
+		'./apachelogs/auth.log:/var/log/auth.log',
+		'./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/'
+	];
+}
+else // nginx (already checked before that the value is correct)
+{
+	$composeFileData['services']['php-http']['build']['dockerfile'] = './docker/php-nginx/Dockerfile';
+	$composeFileData['services']['php-http']['volumes'] = [
+		'./nginxlogs/:/var/log/nginx/',
+		'./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/'
+	];
+
+}
+
 if ($includeTraefik)
 {
 	if (!isset($composeFileData['services']['traefik']))
@@ -334,8 +369,8 @@ if ($includeTraefik)
       - "--providers.docker"
       # Only enabled containers should be exposed
       - "--providers.docker.exposedByDefault=false"
-      # We want to use apache
-      #- "--api.php-apache=true"
+      # We want to use the http server
+      #- "--api.php-http=true"
       # The entrypoints we ant to expose
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"

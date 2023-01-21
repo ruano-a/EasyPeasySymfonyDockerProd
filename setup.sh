@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker run -it -v ${PWD}/:/myinstall/ php:7.4-apache php /myinstall/php-apache/scripts/update-docker-compose.php -c /myinstall/docker-compose.yml -e /myinstall/.env -a /myinstall/acme.json
+./update-yml.sh
 
 wantMailServer=`grep -Po "^\s*I_WANT_MAILSERVER\s*=\s*\K.*(?=\s*)" .env | tr -d '\r\n'`
 wantMailServer=`echo "$wantMailServer" | tr '[:upper:]' '[:lower:]' `

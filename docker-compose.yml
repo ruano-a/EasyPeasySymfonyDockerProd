@@ -15,10 +15,11 @@ services:
       - ./database/data:/var/lib/mysql
     restart: always
 
-  php-apache:
+
+  php-http:
     build:
       context: ../
-      dockerfile: ./docker/php-apache/Dockerfile
+      dockerfile: ./docker/php-nginx/Dockerfile
       args:
         MAIN_DOMAIN: ${MAIN_DOMAIN}
         ALL_DOMAINS: ${ALL_DOMAINS}
@@ -33,25 +34,23 @@ services:
         I_WANT_MAILSERVER: ${I_WANT_MAILSERVER}
     depends_on:
       - database
-      - mailserver
+#      - mailserver
 #    ports: # uncomment these if you're not using traefik
 #      - "80:80"
 #      - "443:443"
     volumes:
-      - ./apachelogs:/var/log/apache2
-      - /var/log/auth.log:/var/log/auth.log
+      - ./nginxlogs/:/var/log/nginx/
       - ./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/
     labels:
-      # - "traefik.http.routers.php-apache.rule=HostRegexp(`example.com`,`{subhost:[a-z]+}.example.com`, `www.{subhost:[a-z]+}.example.com`)"
-      - "traefik.http.routers.php-apache.tls=true"
-      - "traefik.http.routers.php-apache.tls.certresolver=letsencrypt"
+      # - "traefik.http.routers.php-http.rule=HostRegexp(`example.com`,`{subhost:[a-z]+}.example.com`, `www.{subhost:[a-z]+}.example.com`)"
+      - "traefik.http.routers.php-http.tls=true"
+      - "traefik.http.routers.php-http.tls.certresolver=letsencrypt"
       #note : specifying individually domains sucks. we can use wildcards instead, but it requires a dns challenge. more complicated.
-      #- "traefik.http.routers.php-apache.tls.domains[0].main=example.com"
-      #- "traefik.http.routers.php-apache.tls.domains[1].main=fr.example.com"
-      - "traefik.http.services.php-apache.loadbalancer.server.port=80"
+      #- "traefik.http.routers.php-http.tls.domains[0].main=example.com"
+      #- "traefik.http.routers.php-http.tls.domains[1].main=fr.example.com"
+      - "traefik.http.services.php-http.loadbalancer.server.port=80"
       - "traefik.enable=true"
     restart: always
-
   mailserver:
     build:
       context: ./mailserver
