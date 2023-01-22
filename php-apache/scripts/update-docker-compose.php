@@ -284,6 +284,26 @@ if (!$includeTraefik && isset($composeFileData['services']['traefik']))
 {
 	unset($composeFileData['services']['traefik']);
 }
+
+if ($httpServer === 'apache')
+{
+	$composeFileData['services']['php-http']['build']['dockerfile'] = './docker/php-apache/Dockerfile';
+	$composeFileData['services']['php-http']['volumes'] = [
+		'./apachelogs:/var/log/apache2',
+		'./apachelogs/auth.log:/var/log/auth.log',
+		'./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/'
+	];
+}
+else // nginx (already checked before that the value is correct)
+{
+	$composeFileData['services']['php-http']['build']['dockerfile'] = './docker/php-nginx/Dockerfile';
+	$composeFileData['services']['php-http']['volumes'] = [
+		'./nginxlogs/:/var/log/nginx/',
+		'./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/'
+	];
+
+}
+
 $resultYml = Spyc::YAMLDump($composeFileData, false, 0);
 $resultYml = str_replace(['\\[', '\\]'], ['[', ']'], $resultYml);
 
@@ -326,25 +346,6 @@ if ($includeMailServer && !isset($composeFileData['services']['mailserver']))
       test: "ss --listening --tcp | grep -P \'LISTEN.+:smtp\' || exit 1"
       timeout: 3s
       retries: 0' . "\n";
-}
-
-if ($httpServer === 'apache')
-{
-	$composeFileData['services']['php-http']['build']['dockerfile'] = './docker/php-apache/Dockerfile';
-	$composeFileData['services']['php-http']['volumes'] = [
-		'./apachelogs:/var/log/apache2',
-		'./apachelogs/auth.log:/var/log/auth.log',
-		'./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/'
-	];
-}
-else // nginx (already checked before that the value is correct)
-{
-	$composeFileData['services']['php-http']['build']['dockerfile'] = './docker/php-nginx/Dockerfile';
-	$composeFileData['services']['php-http']['volumes'] = [
-		'./nginxlogs/:/var/log/nginx/',
-		'./symfonylogs:/var/www/html/${PROJECT_FOLDER_NAME}/var/log/'
-	];
-
 }
 
 if ($includeTraefik)
