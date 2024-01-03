@@ -1,4 +1,4 @@
-FROM php:7.4-apache
+FROM php:8.1-apache
 COPY docker/php-apache/scripts /installfiles/
 COPY docker/php-apache/apache-conf.txt /installfiles/apache-conf.txt
 RUN chmod 755 /installfiles/build/domains-to-server-names.sh
@@ -16,18 +16,17 @@ RUN docker-php-ext-install pdo_mysql
 RUN apt install -y libicu-dev \
 && docker-php-ext-configure intl \
 && docker-php-ext-install intl
-RUN apt install -y libxml2-dev 
+RUN apt install -y libxml2-dev
 RUN docker-php-ext-install xml
 RUN apt install -y libxslt1-dev \
 && docker-php-ext-install xsl
-RUN apt install -y libzip-dev 
+RUN apt install -y libzip-dev
 RUN docker-php-ext-install zip
 RUN docker-php-ext-install mysqli
+RUN docker-php-ext-install sockets
 RUN apt remove cmdtest
 RUN apt remove yarn
 RUN apt install -y bash
-RUN apt install npm -y
-RUN npm install -g yarn # needed for webpack encore
 RUN apt autoremove
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
@@ -51,29 +50,19 @@ WORKDIR "/var/www/html/$PROJECT_FOLDER_NAME"
 # The option L is to follow redirection
 RUN curl -L "https://github.com/fabpot/local-php-security-checker/releases/download/v2.0.6/local-php-security-checker_2.0.6_linux_amd64" --output '/usr/bin/local-php-security-checker'
 RUN chmod 755 /usr/bin/local-php-security-checker
-RUN yarn install --dev # dev to have webpack encore
 RUN composer install --no-dev --optimize-autoloader
 #RUN composer dump-autoloader can be needed (something like that)
-ARG GENERATE_JS_ROUTES
-# generate routes here if needed
-RUN bash /installfiles/build/dump-js-routes.sh
-#RUN php bin/console fos:js-routing:dump --env=prod
-#RUN php bin/console fos:js-routing:dump --env=prod --domain=admin
-RUN yarn encore production
 RUN php bin/console cache:clear --env=prod
 RUN mkdir -p var
 RUN chown -R www-data public/sitemap*
 
-#RUN npm uninstall -g yarn # causes error "illegal operation on a directory..."
-RUN rm -r /usr/local/lib/node_modules/*
-RUN apt remove -y npm
 RUN rm /usr/bin/composer
 RUN rm /usr/bin/local-php-security-checker
 
 # mail server ?
 RUN sed -i 's,^memory_limit =.*$,memory_limit = 4096M,' /usr/local/etc/php/php.ini-production
 RUN sed -i 's,^memory_limit =.*$,memory_limit = 4096M,' /usr/local/etc/php/php.ini-development
-RUN docker-php-ext-enable pdo_mysql 
+RUN docker-php-ext-enable pdo_mysql
 RUN apt install cron -y
 
 
